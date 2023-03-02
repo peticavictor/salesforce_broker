@@ -12,7 +12,7 @@ global class OpportunityController {
         if(contact == null) {
             return '402';
         }
-
+        System.debug('token : ' + contact.Token__c);
         if(token != contact.Token__c) {
             return '403';
         }
@@ -21,32 +21,38 @@ global class OpportunityController {
 
         Opportunity opportunity = new Opportunity();
         
-        opportunity.Name = String.valueOf(contact.Account.Name) + '_' + String.valueOf(opportunitiesCount[0].get('expr0'));
-        opportunity.CloseDate = Date.today() + 5;
-        opportunity.StageName = 'Prospecting';
-        opportunity.Service__c = service;
-        opportunity.AccountId = String.valueOf(contact.AccountId);
-        insert opportunity;
+        try {
+            opportunity.Name = String.valueOf(contact.Account.Name) + '_' + String.valueOf(opportunitiesCount[0].get('expr0'));
+            opportunity.CloseDate = Date.today() + 5;
+            opportunity.StageName = 'Prospecting';
+            opportunity.LeadSource = 'Web';
+            opportunity.Service__c = service;
+            opportunity.AccountId = String.valueOf(contact.AccountId);
+            insert opportunity;
 
-        String cmrBody = cmr.substring(cmr.indexOf(',') + 1, cmr.length());
-        String invoiceBody = invoice.substring(invoice.indexOf(',') + 1, invoice.length());
+            String cmrBody = cmr.substring(cmr.indexOf(',') + 1, cmr.length());
+            String invoiceBody = invoice.substring(invoice.indexOf(',') + 1, invoice.length());
 
-        Blob pdfBlobCmr = EncodingUtil.base64Decode(cmrBody);
-        Blob pdfBlobInvoice = EncodingUtil.base64Decode(invoiceBody);
+            Blob pdfBlobCmr = EncodingUtil.base64Decode(cmrBody);
+            Blob pdfBlobInvoice = EncodingUtil.base64Decode(invoiceBody);
 
-        Attachment cmrAttachment = new Attachment();
-        cmrAttachment.parentId = opportunity.id;
-        cmrAttachment.contentType = 'application/pdf';
-        cmrAttachment.name = 'cmr_' + opportunity.name + '.pdf';
-        cmrAttachment.body =  pdfBlobCmr;
-        insert cmrAttachment;
+            Attachment cmrAttachment = new Attachment();
+            cmrAttachment.parentId = opportunity.id;
+            cmrAttachment.contentType = 'application/pdf';
+            cmrAttachment.name = 'cmr_' + opportunity.name + '.pdf';
+            cmrAttachment.body =  pdfBlobCmr;
+            insert cmrAttachment;
 
-        Attachment invoiceAttachment = new Attachment();
-        invoiceAttachment.parentId = opportunity.id;
-        invoiceAttachment.contentType = 'application/pdf';
-        invoiceAttachment.name = 'invoice_' + opportunity.name + '.pdf';
-        invoiceAttachment.body =  pdfBlobInvoice;
-        insert invoiceAttachment;
+            Attachment invoiceAttachment = new Attachment();
+            invoiceAttachment.parentId = opportunity.id;
+            invoiceAttachment.contentType = 'application/pdf';
+            invoiceAttachment.name = 'invoice_' + opportunity.name + '.pdf';
+            invoiceAttachment.body =  pdfBlobInvoice;
+            insert invoiceAttachment;
+
+        } catch (Exception e) {
+            return '402 ' + String.valueOf(e);
+        }
 
         Opportunity opp = [SELECT Id, Name, Service__c FROM Opportunity WHERE Id = :opportunity.Id LIMIT 1];
         return String.valueOf(opp.Id);
